@@ -1,0 +1,56 @@
+> adto sa xampp folder
+>> htdocs
+>>> create folder api
+>>>> create login.php
+
+
+
+ibutang ni sa login.php
+
+<?php
+header("Content-Type: application/json; charset=UTF-8");
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Headers: *");
+
+$servername = "localhost";
+$username = "root"; // default XAMPP user
+$password = "";     // default XAMPP password is empty
+$dbname = "storedb"; // 👈 change to your database name
+
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+if ($conn->connect_error) {
+    echo json_encode(["success" => false, "message" => "Database connection failed"]);
+    exit();
+}
+
+$data = json_decode(file_get_contents("php://input"));
+
+$email = $data->email;
+$pass = $data->password;
+
+$sql = "SELECT * FROM owners WHERE email = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("s", $email);
+$stmt->execute();
+$result = $stmt->get_result();
+
+if ($row = $result->fetch_assoc()) {
+    if (password_verify($pass, $row['owner_pass'])) {
+        echo json_encode([
+            "success" => true,
+            "message" => "Login successful",
+            "user" => [
+                "id" => $row['owner_id'],
+                "email" => $row['email'],
+                "status" => $row['status']
+            ]
+        ]);
+    } else {
+        echo json_encode(["success" => false, "message" => "Invalid password"]);
+    }
+} else {
+    echo json_encode(["success" => false, "message" => "Email not found"]);
+}
+
+$conn->close();
